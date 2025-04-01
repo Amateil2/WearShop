@@ -138,7 +138,7 @@ namespace WearShop
         {
             string hashPassword = string.Empty;
             hashPassword = GetHashPass(textBoxPwd.Text.ToString());
-            if (Values.login == textBoxLogin.Text && Values.password  == textBoxPwd.Text)
+            if (ConfigurationManager.AppSettings["Admin_login"] == textBoxLogin.Text && ConfigurationManager.AppSettings["Admin_pwd"] == textBoxPwd.Text)
             {
                 RepairAndImport RepairBase = new RepairAndImport(false);
                 RepairBase.Show();
