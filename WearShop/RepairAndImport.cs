@@ -41,5 +41,12 @@ namespace WearShop
             this.Close();
             RepairBase.Show();
         }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            ImportData ImportData = new ImportData(IsAdmin);
+            this.Close();
+            ImportData.Show();
+        }
     }
 }
