@@ -45,5 +45,8 @@ namespace WearShop
         /// Пароль для подключения к базе данных.
         /// </summary>
         public static string DBPassword = "aj98";
+
+        public static string login = "admin";
+        public static string password = "admin";
     }
 }

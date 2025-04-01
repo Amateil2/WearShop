@@ -138,8 +138,13 @@ namespace WearShop
         {
             string hashPassword = string.Empty;
             hashPassword = GetHashPass(textBoxPwd.Text.ToString());
-
-            if (Authorize(textBoxLogin.Text, hashPassword))
+            if (Values.login == textBoxLogin.Text && Values.password  == textBoxPwd.Text)
+            {
+                RepairBase RepairBase = new RepairBase(false);
+                RepairBase.Show();
+                this.Hide();
+            }
+            else if (Authorize(textBoxLogin.Text, hashPassword))
             {
                 switchRole();
             }

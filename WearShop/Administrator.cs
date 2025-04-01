@@ -92,5 +92,12 @@ namespace WearShop
             this.Close();
             Reference.Show();
         }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            RepairBase RepairBase = new RepairBase(true);
+            this.Close();
+            RepairBase.Show();
+        }
     }
 }
