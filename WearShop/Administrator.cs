@@ -95,7 +95,7 @@ namespace WearShop
 
         private void button5_Click(object sender, EventArgs e)
         {
-            RepairBase RepairBase = new RepairBase(true);
+            RepairAndImport RepairBase = new RepairAndImport(true);
             this.Close();
             RepairBase.Show();
         }

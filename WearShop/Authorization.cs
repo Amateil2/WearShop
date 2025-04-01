@@ -140,7 +140,7 @@ namespace WearShop
             hashPassword = GetHashPass(textBoxPwd.Text.ToString());
             if (Values.login == textBoxLogin.Text && Values.password  == textBoxPwd.Text)
             {
-                RepairBase RepairBase = new RepairBase(false);
+                RepairAndImport RepairBase = new RepairAndImport(false);
                 RepairBase.Show();
                 this.Hide();
             }

@@ -22,19 +22,10 @@ namespace WearShop
         }
 
         private void button2_Click(object sender, EventArgs e)
-        {
-            if (IsAdmin)
-            {
-                Administrator am = new Administrator();
-                am.Show();
-                this.Hide();
-            }
-            else
-            {
-                Authorization authorization = new Authorization();
-                this.Close();
-                authorization.Show();
-            }
+        {            
+            RepairAndImport am = new RepairAndImport(IsAdmin);
+            am.Show();
+            this.Hide();            
         }
 
         private void button4_Click(object sender, EventArgs e)
