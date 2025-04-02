@@ -274,5 +274,11 @@
   <ItemGroup>
     <Folder Include="photo\" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\reload-icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\reload-icon %281%29.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
