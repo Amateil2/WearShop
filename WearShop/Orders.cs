@@ -126,7 +126,17 @@ namespace WearShop
                     row.Cells["OrderUser"].Value = rdr["Пользователь"];
                     row.Cells["OrderPrice"].Value = rdr["Цена заказа"];
                     row.Cells["OrderStatus"].Value = rdr["Статус заказа"]; // Заполняем ComboBox
-
+                    string status = rdr["Статус заказа"].ToString();
+                    if (status == "Выполнен")
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightGreen; // Зеленый цвет для выполненных заказов
+                        row.Cells["OrderStatus"].Style.BackColor = Color.LightGreen; // Зеленый цвет для ComboBox
+                    }
+                    else if (status == "Отменён")
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightCoral; // Красный цвет для отмененных заказов
+                        row.Cells["OrderStatus"].Style.BackColor = Color.LightCoral; // Красный цвет для ComboBox
+                    }
                     // Добавляем OrderData в список
                     orderDataList.Add(orderData);
                 }
@@ -318,10 +328,6 @@ namespace WearShop
                     FillDataGrid(strCmd);
                 }
             }
-            // Сортировка
-            //strCmd += $" ORDER BY ProductCost {orderBy}";
-
-            // Заполнение DataGrid
 
         }
 
