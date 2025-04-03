@@ -36,33 +36,26 @@ namespace WearShop
         /// Выбранный пункт выдачи.
         /// </summary>
         private string selectedPickUpPoint = "";
-
-        //Пагинация
+        /// <summary>
+        /// Размер страницы (количество записей на одной странице).
+        /// </summary>
+        private const int PageSize = 20;
         /// <summary>
         /// Текущая страница.
         /// </summary>
-        private int currentPage1 = 1;
-
+        private int currentPage = 1;
         /// <summary>
-        /// Количество строк на странице.
+        /// Общее количество записей (после фильтрации/поиска).
         /// </summary>
-        private int rowsPerPage1 = 20;
-
+        private int totalRecords = 0;
         /// <summary>
-        /// Общее количество строк на текущей странице.
+        /// SQL-запрос для получения данных (используется для пагинации, поиска, фильтрации).
         /// </summary>
-        private int totalRows1 = 0;
-
-        /// <summary>
-        /// Общее количество записей в таблице.
-        /// </summary>
-        private int totalRecords;
-
+        private string currentSql = "";
         /// <summary>
         /// Список всех строк в DataGridView.
         /// </summary>
         private List<DataGridViewRow> allRows1 = new List<DataGridViewRow>();
-
         /// <summary>
         /// Конструктор класса ViewProducts.
         /// </summary>
@@ -77,204 +70,421 @@ namespace WearShop
                 currentOrder.Clear();
                 Values.clearOrder = false;
             }
+
+            // Инициализируем начальный SQL-запрос
+
+            currentSql = GetBaseSqlQuery();
+
+            UpdateDataGrid();
         }
+        // Обновление состояния кнопок пагинации
 
         /// <summary>
         /// Заполняет DataGridView данными из базы данных.
         /// </summary>
         /// <param name="strCmd">SQL команда для выполнения.</param>
         /// <param name="categoryId">ID категории для фильтрации.</param>
-        public void FillDataGrid(string strCmd, int categoryId)
+        private void FillDataGrid(string sqlQuery)
+
         {
+
             try
+
             {
-                MySqlConnection con = new MySqlConnection(connectionString2);
-                con.Open();
-                MySqlCommand command = new MySqlCommand(strCmd, con);
-                if (categoryId != -1) // Если categoryId найден
+
+                using (MySqlConnection con = new MySqlConnection(connectionString2))
+
                 {
-                    command.Parameters.AddWithValue("@categoryId", categoryId);
-                }
-                MySqlDataReader rdr = command.ExecuteReader();
 
-                allRows1.Clear();
-                dataGridView1.Rows.Clear();
-                dataGridView1.Columns.Clear();
-
-                DataGridViewImageColumn imageColumn = new DataGridViewImageColumn();
-                imageColumn.Name = "ProductPhoto";
-                imageColumn.ImageLayout = DataGridViewImageCellLayout.Zoom;
-                imageColumn.HeaderText = "Фото";
+                    con.Open();
 
 
 
+                    // Добавляем LIMIT и OFFSET для пагинации
 
-                dataGridView1.Columns.Add(imageColumn);
-                dataGridView1.Columns["ProductPhoto"].Visible = true;
-
-                dataGridView1.Columns["ProductPhoto"].Width = 100;
-                dataGridView1.Columns.Add("ProductArticleNumber", "Артикул");
-                dataGridView1.Columns["ProductArticleNumber"].Visible = false;
-                dataGridView1.Columns.Add("ProductName", "Наименование");
-                dataGridView1.Columns.Add("ProductUnit", "Единица измерения");
-                dataGridView1.Columns["ProductUnit"].Visible = false;
-                dataGridView1.Columns.Add("ProductCost", "Стоимость");
-                dataGridView1.Columns["ProductCost"].Width = 200;
-                dataGridView1.Columns.Add("ProductSupplier", "Поставщик");
-                dataGridView1.Columns["ProductSupplier"].Visible = false;
-                dataGridView1.Columns.Add("ProductCategory", "Категория");
-                dataGridView1.Columns["ProductCategory"].Width = 250;
-                dataGridView1.Columns.Add("ProductDiscountAmount", "Скидка");
-                dataGridView1.Columns["ProductDiscountAmount"].Width = 100;
-                dataGridView1.Columns.Add("ProductCount", "Количество на складе");
-                dataGridView1.Columns["ProductCount"].Visible = false;
-                dataGridView1.Columns.Add("ProductDescription", "Описание");
-                dataGridView1.Columns["ProductDescription"].Width = 300;
-
-                if (Values.UserRole != 1)
-                {
-                    DataGridViewButtonColumn buttonEdit = new DataGridViewButtonColumn();
-                    buttonEdit.Name = "Редактировать";
-                    buttonEdit.HeaderText = "Редактировать";
-                    buttonEdit.Text = "Редактировать";
-                    buttonEdit.UseColumnTextForButtonValue = true;
-                    dataGridView1.Columns.Add(buttonEdit);
-                }
-
-                if (Values.UserRole != 1)
-                {
-                    DataGridViewButtonColumn buttonDel = new DataGridViewButtonColumn();
-                    buttonDel.Name = "Удалить";
-                    buttonDel.HeaderText = "Удалить";
-                    buttonDel.Text = "Удалить";
-                    buttonDel.UseColumnTextForButtonValue = true;
-                    dataGridView1.Columns.Add(buttonDel);
-                }
-                if (Values.UserRole == 1)
-                {
-                    buttonAdd.Visible = false;
-                }
+                    string paginatedQuery = sqlQuery + $" LIMIT {PageSize} OFFSET {(currentPage - 1) * PageSize}";
 
 
-                while (rdr.Read())
-                {
-                    string imsName = rdr[9].ToString(); // Replace with the actual column name for the image.
-                    if (string.IsNullOrEmpty(imsName))
+
+                    using (MySqlCommand command = new MySqlCommand(paginatedQuery, con))
+
                     {
-                        imsName = "zaglushka.jpg";
+
+                        using (MySqlDataReader rdr = command.ExecuteReader())
+
+                        {
+
+                            dataGridView1.SuspendLayout(); // Предотвращаем перерисовку во время обновления
+
+
+
+                            allRows1.Clear();
+
+                            dataGridView1.Rows.Clear();
+
+                            dataGridView1.Columns.Clear();
+
+
+
+                            // Создаем столбцы DataGridView (как в вашем коде)
+
+                            DataGridViewImageColumn imageColumn = new DataGridViewImageColumn();
+
+                            imageColumn.Name = "ProductPhoto";
+
+                            imageColumn.ImageLayout = DataGridViewImageCellLayout.Zoom;
+
+                            imageColumn.HeaderText = "Фото";
+
+
+
+                            dataGridView1.Columns.Add(imageColumn);
+
+                            dataGridView1.Columns["ProductPhoto"].Visible = true;
+
+                            dataGridView1.Columns["ProductPhoto"].Width = 100;
+
+
+
+                            dataGridView1.Columns.Add("ProductArticleNumber", "Артикул");
+
+                            dataGridView1.Columns["ProductArticleNumber"].Visible = false;
+
+                            dataGridView1.Columns.Add("ProductName", "Наименование");
+
+                            dataGridView1.Columns.Add("ProductUnit", "Единица измерения");
+
+                            dataGridView1.Columns["ProductUnit"].Visible = false;
+
+                            dataGridView1.Columns.Add("ProductCost", "Стоимость");
+
+                            dataGridView1.Columns["ProductCost"].Width = 200;
+
+                            dataGridView1.Columns.Add("ProductSupplier", "Поставщик");
+
+                            dataGridView1.Columns["ProductSupplier"].Visible = false;
+
+                            dataGridView1.Columns.Add("ProductCategory", "Категория");
+
+                            dataGridView1.Columns["ProductCategory"].Width = 250;
+
+                            dataGridView1.Columns.Add("ProductDiscountAmount", "Скидка");
+
+                            dataGridView1.Columns["ProductDiscountAmount"].Width = 100;
+
+                            dataGridView1.Columns.Add("ProductCount", "Количество на складе");
+
+                            dataGridView1.Columns["ProductCount"].Visible = false;
+
+                            dataGridView1.Columns.Add("ProductDescription", "Описание");
+
+                            dataGridView1.Columns["ProductDescription"].Width = 300;
+
+
+
+                            if (Values.UserRole != 1)
+
+                            {
+
+                                DataGridViewButtonColumn buttonEdit = new DataGridViewButtonColumn();
+
+                                buttonEdit.Name = "Редактировать";
+
+                                buttonEdit.HeaderText = "Редактировать";
+
+                                buttonEdit.Text = "Редактировать";
+
+                                buttonEdit.UseColumnTextForButtonValue = true;
+
+                                dataGridView1.Columns.Add(buttonEdit);
+
+                            }
+
+
+
+                            if (Values.UserRole != 1)
+
+                            {
+
+                                DataGridViewButtonColumn buttonDel = new DataGridViewButtonColumn();
+
+                                buttonDel.Name = "Удалить";
+
+                                buttonDel.HeaderText = "Удалить";
+
+                                buttonDel.Text = "Удалить";
+
+                                buttonDel.UseColumnTextForButtonValue = true;
+
+                                dataGridView1.Columns.Add(buttonDel);
+
+                            }
+
+                            if (Values.UserRole == 1)
+
+                            {
+
+                                buttonAdd.Visible = false;
+
+                            }
+
+
+
+                            while (rdr.Read())
+
+                            {
+
+                                string imsName = rdr[9].ToString(); // Replace with the actual column name for the image.
+
+                                if (string.IsNullOrEmpty(imsName))
+
+                                {
+
+                                    imsName = "zaglushka.jpg";
+
+                                }
+
+                                Image img = null;
+
+                                try
+
+                                {
+
+                                    img = Image.FromFile(@"./photo/" + imsName);
+
+                                }
+
+                                catch (Exception)
+
+                                {
+
+                                    // Обработка ошибки загрузки изображения (например, использование изображения по умолчанию)
+
+                                    img = Image.FromFile(@"./photo/zaglushka.jpg");
+
+                                }
+
+
+
+                                int rowIndex = dataGridView1.Rows.Add();
+
+                                DataGridViewRow row = dataGridView1.Rows[rowIndex];
+
+
+
+                                row.Cells["ProductArticleNumber"].Value = rdr[0];
+
+                                row.Cells["ProductName"].Value = rdr[1];
+
+                                row.Cells["ProductUnit"].Value = rdr[2];
+
+                                row.Cells["ProductCost"].Value = rdr[3];
+
+                                row.Cells["ProductSupplier"].Value = rdr[4];
+
+                                row.Cells["ProductCategory"].Value = rdr[5];
+
+                                row.Cells["ProductDiscountAmount"].Value = rdr[6];
+
+                                row.Cells["ProductCount"].Value = rdr[7];
+
+                                row.Cells["ProductDescription"].Value = rdr[8];
+
+                                row.Cells["ProductPhoto"].Value = img;
+
+
+
+                                allRows1.Add(row);
+
+                            }
+
+
+
+                            dataGridView1.ReadOnly = true;
+
+                            dataGridView1.AllowUserToAddRows = false;
+
+                            dataGridView1.AllowUserToDeleteRows = false;
+
+                            dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+
+                            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+
+                            dataGridView1.AutoGenerateColumns = false;
+
+                            dataGridView1.RowHeadersVisible = false;
+
+                            dataGridView1.ResumeLayout(false); // Возобновляем перерисовку
+
+                        }
+
                     }
-                    Image img = Image.FromFile(@"./photo/" + imsName);
 
+                    UpdatePagingLabels();
 
-                    int rowIndex = dataGridView1.Rows.Add();
-                    DataGridViewRow row = dataGridView1.Rows[rowIndex];
-
-                    row.Cells["ProductArticleNumber"].Value = rdr[0];
-                    row.Cells["ProductName"].Value = rdr[1];
-                    row.Cells["ProductUnit"].Value = rdr[2];
-                    row.Cells["ProductCost"].Value = rdr[3];
-                    row.Cells["ProductSupplier"].Value = rdr[4];
-                    row.Cells["ProductCategory"].Value = rdr[5];
-                    row.Cells["ProductDiscountAmount"].Value = rdr[6];
-                    row.Cells["ProductCount"].Value = rdr[7];
-                    row.Cells["ProductDescription"].Value = rdr[8];
-                    row.Cells["ProductPhoto"].Value = img;
-
-                    allRows1.Add(row);
                 }
-                dataGridView1.ReadOnly = true;
-                dataGridView1.AllowUserToAddRows = false;
-                dataGridView1.AllowUserToDeleteRows = false;
-                dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-                dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-                dataGridView1.AutoGenerateColumns = false;
-                dataGridView1.RowHeadersVisible = false;
 
-                con.Close();
             }
+
             catch (Exception ex)
-            {
-                throw new Exception($"Ошибка: {ex}");
-            }
-        }
 
+            {
+
+                MessageBox.Show($"Ошибка при заполнении DataGridView: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+            }
+
+        }
+        private string GetBaseSqlQuery()
+
+        {
+
+            return "SELECT " +
+
+                   "ProductArticleNumber," +
+
+                   "ProductName," +
+
+                   "ProductUnit," +
+
+                   "ProductCost," +
+
+                   "Supplier.SupplierName," +
+
+                   "Category.CategoryName," +
+
+                   "ProductDiscountAmount," +
+
+                   "ProductCount," +
+
+                   "ProductDescription," +
+
+                   "ProductPhoto " +
+
+                   "FROM Product " +
+
+                   "INNER JOIN Supplier ON Product.ProductSupplier = Supplier.SupplierID " +
+
+                   "INNER JOIN Category ON Product.ProductCategory = Category.CategoryID";
+
+        }
+        private int GetTotalRecords(string sqlQuery)
+
+        {
+
+            string countQuery = $"SELECT COUNT(*) FROM ({sqlQuery}) AS CountQuery"; // Оборачиваем запрос
+
+            using (MySqlConnection con = new MySqlConnection(connectionString2))
+
+            {
+
+                con.Open();
+
+                using (MySqlCommand cmd = new MySqlCommand(countQuery, con))
+
+                {
+
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+
+                }
+
+            }
+
+        }
         /// <summary>
         /// Обновляет данные в DataGridView, выполняя поиск, сортировку и фильтрацию.
         /// </summary>
-        private void UpdateDataGrid()//поиск сортировка фильтр
+        private void UpdateDataGrid()
+
         {
+
             string searchStr = textBoxSearch.Text;
 
-            // Получение выбранной категории
-            string selectedCategory = comboBox2.SelectedItem?.ToString(); // выбранная категория
-            int categoryId = -1;
+            string selectedCategory = comboBox2.SelectedItem?.ToString();
 
 
 
-            string strCmd = "SELECT " +
-            "ProductArticleNumber AS 'Артикул'," +
-            "ProductName AS 'Наименование'," +
-            "ProductUnit AS 'Единица измерения'," +
-            "ProductCost AS 'Стоимость'," +
-            "Supplier.SupplierName AS 'Поставщик'," +
-            "Category.CategoryName AS 'Категория'," +
-            "ProductDiscountAmount AS 'Скидка'," +
-            "ProductCount AS 'Количество на складе'," +
-            "ProductDescription AS 'Описание'," +
-            "ProductPhoto " +
-            "FROM Product " +
-            "INNER JOIN Supplier ON Product.ProductSupplier = Supplier.SupplierID " +
-            "INNER JOIN Category ON Product.ProductCategory = Category.CategoryID"; // начальная часть запроса
+            // 1. Получаем базовый SQL-запрос
 
-            // Поиск
+            string sqlQuery = GetBaseSqlQuery();
 
-            if (textBoxSearch.Text == "")
-            {
-                FillDataGrid(strCmd, categoryId);
-            }
+
+
+            // 2. Добавляем условия фильтрации/поиска
+
+            List<string> conditions = new List<string>();
+
+
+
             if (!string.IsNullOrWhiteSpace(searchStr) && searchStr.Length >= 3)
+
             {
-                strCmd += $" AND ProductName LIKE '%{searchStr}%'";
-                FillDataGrid(strCmd, categoryId);
+
+                conditions.Add($"ProductName LIKE '%{searchStr}%'");
+
             }
 
 
 
-            // фильтрация по категориям
-            if (!string.IsNullOrWhiteSpace(selectedCategory))
-            {
-                if (comboBox2.SelectedIndex == 0)
-                {
-                    FillDataGrid(strCmd, categoryId);
-                }
-                else
-                {
-                    strCmd += $" AND ProductCategory = (SELECT CategoryID FROM Category WHERE CategoryName = '{selectedCategory}')";
-                    FillDataGrid(strCmd, categoryId);
-                }
-            }
-            //сортировка
-            if (comboBox1.Text != "")
-            {
-                if (comboBox1.Text == "Без сортировки")
-                {
-                    FillDataGrid(strCmd, categoryId);
-                }
-                if (comboBox1.Text == "По убыванию")
-                {
-                    strCmd += $" ORDER BY ProductCost DESC";
-                    FillDataGrid(strCmd, categoryId);
-                }
-                if (comboBox1.Text == "По возрастанию")
-                {
-                    strCmd += $" ORDER BY ProductCost ASC";
-                    FillDataGrid(strCmd, categoryId);
-                }
-            }
-            // Сортировка
-            //strCmd += $" ORDER BY ProductCost {orderBy}";
+            if (!string.IsNullOrWhiteSpace(selectedCategory) && selectedCategory != "Без фильтрации")
 
-            // Заполнение DataGrid
+            {
+
+                conditions.Add($"Category.CategoryName = '{selectedCategory}'");
+
+            }
+
+
+
+            // 3. Объединяем условия в WHERE
+
+            if (conditions.Any())
+
+            {
+
+                sqlQuery += " WHERE " + string.Join(" AND ", conditions);
+
+            }
+
+
+
+            // 4. Добавляем сортировку
+
+            if (comboBox1.Text == "По убыванию")
+
+            {
+
+                sqlQuery += " ORDER BY ProductCost DESC";
+
+            }
+
+            else if (comboBox1.Text == "По возрастанию")
+
+            {
+
+                sqlQuery += " ORDER BY ProductCost ASC";
+
+            }
+
+
+
+            // Сохраняем текущий SQL для пагинации
+
+            currentSql = sqlQuery;
+
+
+
+            // Получаем общее количество записей
+
+            totalRecords = GetTotalRecords(sqlQuery);
+
+
+
+            // Заполняем DataGridView с учетом пагинации
+
+            FillDataGrid(sqlQuery);
+
+
 
         }
 
@@ -406,20 +616,15 @@ namespace WearShop
             comboBox1.Items.Add("По возрастанию");
             comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
 
-            FillDataGrid("SELECT " +
-            "ProductArticleNumber AS 'Артикул'," +
-            "ProductName AS 'Наименование'," +
-            "ProductUnit AS 'Единица измерения'," +
-            "ProductCost AS 'Стоимость'," +
-            "Supplier.SupplierName AS 'Поставщик'," +
-            "Category.CategoryName AS 'Категория'," +
-            "ProductDiscountAmount AS 'Скидка'," +
-            "ProductCount AS 'Количество на складе'," +
-            "ProductDescription AS 'Описание'," +
-            "ProductPhoto " +
-            "FROM Product " +
-            "INNER JOIN Supplier ON Product.ProductSupplier = Supplier.SupplierID " +
-            "INNER JOIN Category ON Product.ProductCategory = Category.CategoryID", 1);
+            
+
+            UpdatePagingLabels(); // Обновляем отображение пагинации
+
+            // Инициализируем начальный SQL-запрос
+
+            currentSql = GetBaseSqlQuery();
+
+            UpdateDataGrid();
 
         }
 
@@ -503,20 +708,7 @@ namespace WearShop
                     EditProduct editForm = new EditProduct(productId);
                     editForm.ShowDialog(); // Показываем форму как модальное окно
 
-                    FillDataGrid("SELECT " +
-                    "ProductArticleNumber AS 'Артикул'," +
-                    "ProductName AS 'Наименование товара'," +
-                    "ProductUnit AS 'Единица измерения'," +
-                    "ProductCost AS 'Стоимость'," +
-                    "Supplier.SupplierName AS 'Поставщик'," +
-                    "Category.CategoryName AS 'Категория'," +
-                    "ProductDiscountAmount AS 'Скидка'," +
-                    "ProductCount AS 'Количество на складе'," +
-                    "ProductDescription AS 'Описание'," +
-                    "ProductPhoto " +
-                "FROM Product " +
-                "INNER JOIN Supplier ON Product.ProductSupplier = Supplier.SupplierID " +
-                "INNER JOIN Category ON Product.ProductCategory = Category.CategoryID", 1);
+                    UpdateDataGrid();
                 }
                 if (Values.UserRole != 1)
                 {
@@ -531,7 +723,7 @@ namespace WearShop
                         if (dialogResult == DialogResult.Yes)
                         {
                             DeleteRecord(id); // Удаляем запись из базы данных
-                            dataGridView1.Rows.RemoveAt(e.RowIndex); // Удаляем строку из DataGridView
+                            UpdateDataGrid(); // Обновляем DataGridView после удаления
                         }
                     }
                 }
@@ -551,6 +743,49 @@ namespace WearShop
             command.Parameters.AddWithValue("@ProductArticleNumber", id);
             command.ExecuteNonQuery();
             con.Close();
+        }
+
+        private void btnPrevPage_Click(object sender, EventArgs e)
+        {
+            if (currentPage > 1)
+
+            {
+
+                currentPage--;
+
+                UpdateDataGrid();
+
+            }
+        }
+
+        private void btnNextPage_Click(object sender, EventArgs e)
+        {
+            int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
+
+            if (currentPage < totalPages)
+
+            {
+
+                currentPage++;
+
+                UpdateDataGrid();
+
+            }
+        }
+        private void UpdatePagingLabels()
+
+        {
+
+            int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
+
+            lblPageInfo.Text = $"Страница {currentPage} из {totalPages}"; // Пример: "Страница 2 из 5"
+
+            lblRecordCount.Text = $"Записей: {dataGridView1.Rows.Count} из {totalRecords}"; // Пример: "20 из 87"
+
+            btnPrevPage.Enabled = (currentPage > 1);
+
+            btnNextPage.Enabled = (currentPage < totalPages);
+
         }
     }
 }
