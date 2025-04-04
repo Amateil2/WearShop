@@ -21,6 +21,10 @@ namespace WearShop
         /// Строка подключения к базе данных.
         /// </summary>
         string connectionString2 = $"host={Values.DBHost};uid={Values.DBUser};pwd={Values.DBPassword};database=db30;port=3306;";
+        /// <summary>
+        /// Время бездействия (в миллисекундах), загружаемое из App.config.
+        /// </summary>
+        private int inactivityTimeout = 0;
 
         /// <summary>
         /// Список для хранения всех строк DataGridView (не используется в текущей реализации).
@@ -33,6 +37,9 @@ namespace WearShop
         public Users()
         {
             InitializeComponent();
+            // Инициализация таймера
+            inactivityTimer.Tick += InactivityTimer_Tick;
+            inactivityTimer.Interval = 1000; // Проверка каждые 1 секунду
         }
 
         /// <summary>
@@ -46,7 +53,51 @@ namespace WearShop
             am.Show();
             this.Hide();
         }
+        /// <summary>
+        /// Назначение обработчиков событий клавиатуры и мыши для отслеживания активности.
+        /// </summary>
+        private void Users_ActivateTracking()
+        {
+            // Назначаем обработчики событий для всей формы
+            this.MouseMove += Users_ActivityDetected;
+            this.KeyPress += Users_ActivityDetected;
+            this.MouseClick += Users_ActivityDetected;
 
+            // Если есть встроенные контролы, следим за их активностью
+            foreach (Control control in this.Controls)
+            {
+                control.MouseMove += Users_ActivityDetected;
+                control.MouseClick += Users_ActivityDetected;
+            }
+        }
+        /// <summary>
+        /// Обработчик истечения времени бездействия.
+        /// </summary>
+        private void InactivityTimer_Tick(object sender, EventArgs e)
+        {
+            // Это событие сработает при превышении заданного времени бездействия
+            if (inactivityTimeout > 0)
+            {
+                inactivityTimeout -= 1000; // Уменьшаем тайм-аут
+            }
+            else
+            {
+                inactivityTimer.Stop(); // Останавливаем таймер
+                MessageBox.Show("Вы были перенаправлены на страницу авторизации из-за бездействия.", "Блокировка системы");
+
+                Authorization authorization = new Authorization();
+                this.Close();
+                authorization.Show();
+            }
+        }
+        /// <summary>
+        /// Обработчик любых событий, связанных с активностью пользователя (например, движение мыши или нажатие клавиш).
+        /// Отслеживает действия пользователя и сбрасывает таймер бездействия.
+        /// </summary>
+        private void Users_ActivityDetected(object sender, EventArgs e)
+        {
+            ResetInactivityTimer();
+        }
         /// <summary>
         /// Заполняет DataGridView данными о пользователях из базы данных (с кнопками редактирования и удаления).
         /// </summary>
@@ -143,6 +194,19 @@ namespace WearShop
         /// <param name="e">Аргументы события.</param>
         private void Users_Load(object sender, EventArgs e)
         {
+            // Загрузить интервал времени бездействия из App.config
+            if (int.TryParse(ConfigurationManager.AppSettings["InactivityTimeout"], out int timeoutInSeconds))
+            {
+                inactivityTimeout = timeoutInSeconds * 1000; // Перевод в миллисекунды
+            }
+            else
+            {
+                // Значение по умолчанию (30 секунд), если не удалось считать App.config
+                inactivityTimeout = 30000;
+            }
+
+            ResetInactivityTimer(); // Сброс таймера активности
+            inactivityTimer.Start(); // Запуск таймера активности
             FillDataGrid("SELECT " +
             "UserID AS 'ID пользователя'," +
             "UserSurname AS 'Фамилия'," +
@@ -152,7 +216,18 @@ namespace WearShop
             "FROM User " +
             "INNER JOIN Role ON User.UserRole = Role.RoleID");
         }
-
+        /// <summary>
+        /// Сбрасывает отслеживание времени бездействия.
+        /// </summary>
+        private void ResetInactivityTimer()
+        {
+            // Перезапускаем таймер
+            if (inactivityTimer != null)
+            {
+                inactivityTimer.Stop();
+                inactivityTimer.Start();
+            }
+        }
         /// <summary>
         /// Обработчик нажатия кнопки "Добавить пользователя".
         /// Открывает форму для добавления нового пользователя.
@@ -214,6 +289,14 @@ namespace WearShop
             command.Parameters.AddWithValue("@UserID", id);
             command.ExecuteNonQuery();
             con.Close();
+        }
+
+        /// <summary>
+        /// Запускает отслеживание активности при загрузке окна.
+        /// </summary>
+        private void Users_Shown(object sender, EventArgs e)
+        {
+            Users_ActivateTracking();
         }
     }
 }

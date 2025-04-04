@@ -29,6 +29,7 @@ namespace WearShop
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.button2 = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
@@ -55,6 +56,7 @@ namespace WearShop
             this.label3 = new System.Windows.Forms.Label();
             this.textBox_pickUp = new System.Windows.Forms.TextBox();
             this.dataGridView_PickUp = new System.Windows.Forms.DataGridView();
+            this.inactivityTimer = new System.Windows.Forms.Timer(this.components);
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_Category)).BeginInit();
@@ -385,6 +387,7 @@ namespace WearShop
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Справочники";
             this.Load += new System.EventHandler(this.Reference_Load);
+            this.Shown += new System.EventHandler(this.Reference_Shown);
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
             this.tabPage1.PerformLayout();
@@ -429,5 +432,6 @@ namespace WearShop
         private System.Windows.Forms.Button button9;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox textBox_pickUp;
+        private System.Windows.Forms.Timer inactivityTimer;
     }
 }

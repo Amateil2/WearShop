@@ -21,7 +21,10 @@ namespace WearShop
         /// Строка подключения к базе данных.
         /// </summary>
         string connectionString2 = $"host={Values.DBHost};uid={Values.DBUser};pwd={Values.DBPassword};database=db30;port=3306;";
-
+        /// <summary>
+        /// Время бездействия (в миллисекундах), загружаемое из App.config.
+        /// </summary>
+        private int inactivityTimeout = 0;
         /// <summary>
         /// Роль пользователя.
         /// </summary>
@@ -70,12 +73,71 @@ namespace WearShop
                 currentOrder.Clear();
                 Values.clearOrder = false;
             }
-
+            // Инициализация таймера
+            inactivityTimer.Tick += InactivityTimer_Tick;
+            inactivityTimer.Interval = 1000; // Проверка каждые 1 секунду
             // Инициализируем начальный SQL-запрос
 
             currentSql = GetBaseSqlQuery();
 
             UpdateDataGrid();
+        }
+        /// <summary>
+        /// Назначение обработчиков событий клавиатуры и мыши для отслеживания активности.
+        /// </summary>
+        private void Users_ActivateTracking()
+        {
+            // Назначаем обработчики событий для всей формы
+            this.MouseMove += Users_ActivityDetected;
+            this.KeyPress += Users_ActivityDetected;
+            this.MouseClick += Users_ActivityDetected;
+
+            // Если есть встроенные контролы, следим за их активностью
+            foreach (Control control in this.Controls)
+            {
+                control.MouseMove += Users_ActivityDetected;
+                control.MouseClick += Users_ActivityDetected;
+            }
+        }
+        /// <summary>
+        /// Обработчик любых событий, связанных с активностью пользователя (например, движение мыши или нажатие клавиш).
+        /// Отслеживает действия пользователя и сбрасывает таймер бездействия.
+        /// </summary>
+        private void Users_ActivityDetected(object sender, EventArgs e)
+        {
+            ResetInactivityTimer();
+        }
+        /// <summary>
+        /// Сбрасывает отслеживание времени бездействия.
+        /// </summary>
+        private void ResetInactivityTimer()
+        {
+            // Перезапускаем таймер
+            if (inactivityTimer != null)
+            {
+                inactivityTimer.Stop();
+                inactivityTimer.Start();
+            }
+        }
+        /// <summary>
+        /// Обработчик истечения времени бездействия.
+        /// </summary>
+        private void InactivityTimer_Tick(object sender, EventArgs e)
+        {
+            // Это событие сработает при превышении заданного времени бездействия
+            if (inactivityTimeout > 0)
+            {
+                inactivityTimeout -= 1000; // Уменьшаем тайм-аут
+            }
+            else
+            {
+                inactivityTimer.Stop(); // Останавливаем таймер
+                MessageBox.Show("Вы были перенаправлены на страницу авторизации из-за бездействия.", "Блокировка системы");
+
+                Authorization authorization = new Authorization();
+                this.Close();
+                authorization.Show();
+            }
         }
         // Обновление состояния кнопок пагинации
 
@@ -602,6 +664,18 @@ namespace WearShop
         /// <param name="e">Аргументы события.</param>
         private void ViewProducts_Load(object sender, EventArgs e)
         {
+            // Загрузить интервал времени бездействия из App.config
+            if (int.TryParse(ConfigurationManager.AppSettings["InactivityTimeout"], out int timeoutInSeconds))
+            {
+                inactivityTimeout = timeoutInSeconds * 1000; // Перевод в миллисекунды
+            }
+            else
+            {
+                // Значение по умолчанию (30 секунд), если не удалось считать App.config
+                inactivityTimeout = 30000;
+            }
+            ResetInactivityTimer(); // Сброс таймера активности
+            inactivityTimer.Start(); // Запуск таймера активности
             if (Values.UserRole != 3 && Values.UserRole != 2)
             {
                 ContextMenuStrip menu = new ContextMenuStrip();
@@ -786,6 +860,11 @@ namespace WearShop
 
             btnNextPage.Enabled = (currentPage < totalPages);
 
+        }
+
+        private void ViewProducts_Shown(object sender, EventArgs e)
+        {
+            Users_ActivateTracking();
         }
     }
 }
