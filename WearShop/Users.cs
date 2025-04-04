@@ -48,67 +48,6 @@ namespace WearShop
         }
 
         /// <summary>
-        /// Заполняет DataGridView данными о пользователях из базы данных (без кнопок редактирования и удаления).
-        /// </summary>
-        /// <param name="strCmd">SQL-запрос для получения данных о пользователях.</param>
-        public void FillDataGridWithoutData(string strCmd)
-        {
-            try
-            {
-                MySqlConnection con = new MySqlConnection(connectionString2);
-                con.Open();
-                MySqlCommand command = new MySqlCommand(strCmd, con);
-                MySqlDataReader rdr = command.ExecuteReader();
-                for (int i = 0; i < dataGridView1.Rows.Count; ++i)
-                {
-                    dataGridView1.Rows[i].Visible = true;
-                }
-                //allRows1.Clear();
-                dataGridView1.Rows.Clear();
-                dataGridView1.Columns.Clear();
-                dataGridView1.AutoResizeColumns();
-                dataGridView1.AutoResizeRows();
-                dataGridView1.ReadOnly = true;
-
-
-                dataGridView1.Columns.Add("UserID", "ID пользователя");
-                dataGridView1.Columns["UserID"].Visible = false;
-                dataGridView1.Columns.Add("UserSurname", "Фамилия");
-                dataGridView1.Columns.Add("UserName", "Имя");
-                dataGridView1.Columns.Add("UserPatronymic", "Отчество");
-                dataGridView1.Columns.Add("UserLogin", "Логина");
-                dataGridView1.Columns.Add("UserPassword", "Пароль");
-                dataGridView1.Columns.Add("UserRole", "Роль");
-
-                while (rdr.Read())
-                {
-                    int rowIndex = dataGridView1.Rows.Add();
-                    DataGridViewRow row = dataGridView1.Rows[rowIndex];
-                    row.Cells["UserID"].Value = rdr[0];
-                    row.Cells["UserSurname"].Value = rdr[1];
-                    row.Cells["UserName"].Value = rdr[2];
-                    row.Cells["UserPatronymic"].Value = rdr[3];
-                    row.Cells["UserLogin"].Value = rdr[4];
-                    row.Cells["UserPassword"].Value = rdr[5];
-                    row.Cells["UserRole"].Value = rdr[6];
-
-                }
-                dataGridView1.ReadOnly = true;
-                dataGridView1.AllowUserToAddRows = false;
-                dataGridView1.AllowUserToDeleteRows = false;
-                dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-                dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-                dataGridView1.AutoGenerateColumns = false;
-                dataGridView1.RowHeadersVisible = false;
-                con.Close();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Ошибка: {ex}");
-            }
-        }
-
-        /// <summary>
         /// Заполняет DataGridView данными о пользователях из базы данных (с кнопками редактирования и удаления).
         /// </summary>
         /// <param name="strCmd">SQL-запрос для получения данных о пользователях.</param>
@@ -157,11 +96,13 @@ namespace WearShop
                     int rowIndex = dataGridView1.Rows.Add();
                     DataGridViewRow row = dataGridView1.Rows[rowIndex];
                     row.Cells["UserID"].Value = rdr[0];
-                    row.Cells["UserSurname"].Value = rdr[1];
-                    row.Cells["UserName"].Value = rdr[2];
-                    row.Cells["UserPatronymic"].Value = rdr[3];
-                    row.Cells["UserRole"].Value = rdr[4];
 
+                    // Используем функцию MaskPersonalData для скрытия данных
+                    row.Cells["UserSurname"].Value = MaskPersonalData(rdr[1].ToString());
+                    row.Cells["UserName"].Value = MaskPersonalData(rdr[2].ToString());
+                    row.Cells["UserPatronymic"].Value = MaskPersonalData(rdr[3].ToString());
+
+                    row.Cells["UserRole"].Value = rdr[4];
                 }
                 dataGridView1.ReadOnly = true;
                 dataGridView1.AllowUserToAddRows = false;
@@ -179,6 +120,22 @@ namespace WearShop
         }
 
         /// <summary>
+        /// Функция для скрытия персональных данных (замена половины символов на звёздочки).
+        /// </summary>
+        /// <param name="data">Строка с персональными данными.</param>
+        /// <returns>Скрытая строка с заменёнными символами.</returns>
+        private string MaskPersonalData(string data)
+        {
+            if (string.IsNullOrEmpty(data))
+                return data;
+
+            int lengthToMask = data.Length / 2; // Половина длины строки
+            string visiblePart = data.Substring(0, data.Length - lengthToMask); // Видимая часть
+            string maskedPart = new string('*', lengthToMask); // Невидимая часть
+            return visiblePart + maskedPart;
+        }
+
+        /// <summary>
         /// Обработчик события загрузки формы "Пользователи".
         /// Заполняет DataGridView данными о пользователях.
         /// </summary>
@@ -191,45 +148,6 @@ namespace WearShop
             "UserSurname AS 'Фамилия'," +
             "UserName AS 'Имя'," +
             "UserPatronymic AS 'Отчество'," +
-            "Role.RoleName AS 'Роль'" +
-            "FROM User " +
-            "INNER JOIN Role ON User.UserRole = Role.RoleID");
-
-
-        }
-
-        /// <summary>
-        /// Обработчик нажатия кнопки "Обновить". Обновляет данные в DataGridView.
-        /// </summary>
-        /// <param name="sender">Источник события.</param>
-        /// <param name="e">Аргументы события.</param>
-        private void button3_Click(object sender, EventArgs e)
-        {
-            FillDataGrid("SELECT " +
-            "UserID AS 'ID пользователя'," +
-            "UserSurname AS 'Фамилия'," +
-            "UserName AS 'Имя'," +
-            "UserPatronymic AS 'Отчество'," +
-            "Role.RoleName AS 'Роль'" +
-            "FROM User " +
-            "INNER JOIN Role ON User.UserRole = Role.RoleID");
-        }
-
-        /// <summary>
-        /// Обработчик нажатия кнопки "Детали".
-        /// Заполняет DataGridView данными о пользователях, включая логин и пароль (только для просмотра).
-        /// </summary>
-        /// <param name="sender">Источник события.</param>
-        /// <param name="e">Аргументы события.</param>
-        private void button1_Click(object sender, EventArgs e)
-        {
-            FillDataGridWithoutData("SELECT " +
-            "UserID AS 'ID пользователя'," +
-            "UserSurname AS 'Фамилия'," +
-            "UserName AS 'Имя'," +
-            "UserPatronymic AS 'Отчество'," +
-            "UserLogin AS 'Логина'," +
-            "UserPassword AS 'Пароль'," +
             "Role.RoleName AS 'Роль'" +
             "FROM User " +
             "INNER JOIN Role ON User.UserRole = Role.RoleID");
@@ -249,23 +167,17 @@ namespace WearShop
         }
 
         /// <summary>
-        /// Обработчик клика по ячейке DataGridView.  Выполняет действия в зависимости от нажатой кнопки ("Редактировать" или "Удалить").
+        /// Обработчик клика по ячейке DataGridView. Выполняет действия в зависимости от нажатой кнопки ("Редактировать" или "Удалить").
         /// </summary>
         /// <param name="sender">Источник события.</param>
         /// <param name="e">Аргументы события.</param>
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-
-            // Проверяем, нажата ли кнопка в определенной колонке
             if (e.ColumnIndex == dataGridView1.Columns["Редактировать"].Index && e.RowIndex >= 0)
             {
-                // Получите данные из выбранной строки
                 int id = Convert.ToInt32(dataGridView1.Rows[e.RowIndex].Cells["UserID"].Value);
-
-                // Создаем и открываем новую форму
                 EditUsers editForm = new EditUsers(id);
-                editForm.ShowDialog(); // Показываем форму как модальное окно
-
+                editForm.ShowDialog();
                 FillDataGrid("SELECT " +
                     "UserID AS 'ID пользователя'," +
                     "UserSurname AS 'Фамилия'," +
@@ -276,22 +188,17 @@ namespace WearShop
                     "INNER JOIN Role ON User.UserRole = Role.RoleID");
             }
 
-            // Проверяем, что нажата кнопка "Удалить"
             if (e.ColumnIndex == dataGridView1.Columns["Удалить"].Index && e.RowIndex >= 0)
             {
-                // Получаем идентификатор записи
                 int id = Convert.ToInt32(dataGridView1.Rows[e.RowIndex].Cells["UserID"].Value);
 
-                // Подтверждение удаления
                 DialogResult dialogResult = MessageBox.Show("Вы уверены, что хотите удалить эту запись?", "Подтверждение удаления", MessageBoxButtons.YesNo);
                 if (dialogResult == DialogResult.Yes)
                 {
-                    DeleteRecord(id); // Удаляем запись из базы данных
-                    dataGridView1.Rows.RemoveAt(e.RowIndex); // Удаляем строку из DataGridView
+                    DeleteRecord(id);
+                    dataGridView1.Rows.RemoveAt(e.RowIndex);
                 }
             }
-
-
         }
 
         /// <summary>
