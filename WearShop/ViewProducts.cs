@@ -82,6 +82,30 @@ namespace WearShop
 
             UpdateDataGrid();
         }
+        private void UpdatePagingButtons()
+        {
+            int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
+
+            flowLayoutPanelPaging.Controls.Clear(); // Очищаем предыдущие кнопки
+
+            for (int i = 1; i <= totalPages; i++)
+            {
+                Button pageButton = new Button();
+                pageButton.Text = i.ToString();
+                pageButton.Tag = i; // сохраняем номер страницы в Tag для дальнейшего использования
+                pageButton.Click += PageButton_Click; // добавляем обработчик на клик
+                flowLayoutPanelPaging.Controls.Add(pageButton);
+            }
+        }
+        private void PageButton_Click(object sender, EventArgs e)
+        {
+            Button clickedButton = sender as Button;
+            if (clickedButton != null)
+            {
+                currentPage = (int)clickedButton.Tag; // получаем номер страницы из Tag кнопки
+                UpdateDataGrid(); // обновляем данные в DataGridView
+            }
+        }
         /// <summary>
         /// Назначение обработчиков событий клавиатуры и мыши для отслеживания активности.
         /// </summary>
@@ -430,11 +454,11 @@ namespace WearShop
                    "INNER JOIN Category ON Product.ProductCategory = Category.CategoryID";
 
         }
-        private int GetTotalRecords(string sqlQuery)
+        private int GetTotalRecords()
 
         {
 
-            string countQuery = $"SELECT COUNT(*) FROM ({sqlQuery}) AS CountQuery"; // Оборачиваем запрос
+            string countQuery = $"SELECT COUNT(*) FROM product"; // Оборачиваем запрос
 
             using (MySqlConnection con = new MySqlConnection(connectionString2))
 
@@ -538,14 +562,14 @@ namespace WearShop
 
             // Получаем общее количество записей
 
-            totalRecords = GetTotalRecords(sqlQuery);
+            totalRecords = GetTotalRecords();
 
 
 
             // Заполняем DataGridView с учетом пагинации
 
             FillDataGrid(sqlQuery);
-
+            UpdatePagingButtons();
 
 
         }
@@ -748,6 +772,7 @@ namespace WearShop
         private void textBoxSearch_TextChanged(object sender, EventArgs e)
         {
             UpdateDataGrid();
+
         }
 
         /// <summary>
@@ -852,12 +877,14 @@ namespace WearShop
 
             int totalPages = (int)Math.Ceiling((double)totalRecords / PageSize);
 
+            // Лейбл для информации о страницах изменяем, чтобы показывал общее количество страниц
             lblPageInfo.Text = $"Страница {currentPage} из {totalPages}"; // Пример: "Страница 2 из 5"
 
-            lblRecordCount.Text = $"Записей: {dataGridView1.Rows.Count} из {totalRecords}"; // Пример: "20 из 87"
+            // Здесь мы изменили текст метки, чтобы она показывала общее количество записей, а не только на текущей странице
+            lblRecordCount.Text = $"Записей: {dataGridView1.Rows.Count} из {totalRecords}"; // Пример: "Записей: 5 из 49"
 
+            // Обновляем состояние кнопок "Назад" и "Вперед" в зависимости от текущей страницы
             btnPrevPage.Enabled = (currentPage > 1);
-
             btnNextPage.Enabled = (currentPage < totalPages);
 
         }
